@@ -1,6 +1,21 @@
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
+const { loadAllRooms, saveAllRooms } = require("./storage");
+
+// Load persisted rooms at startup
+const persistedRooms = loadAllRooms();
+
+const rooms = {};
+
+for (const roomId in persistedRooms) {
+  rooms[roomId] = {
+    document: persistedRooms[roomId].document,
+    users: {}, // ← presence always starts empty
+    createdAt: Date.now(),
+    lastUpdatedAt: persistedRooms[roomId].lastUpdatedAt,
+  };
+}
 
 const app = express();
 const server = http.createServer(app);
@@ -12,7 +27,6 @@ const io = new Server(server, {
 // --------------------
 // In-memory room store
 // --------------------
-const rooms = {};
 
 // Utility: get or create room
 function getOrCreateRoom(roomId) {
@@ -66,6 +80,8 @@ io.on("connection", (socket) => {
     // Last-write-wins
     room.document = document;
     room.lastUpdatedAt = Date.now();
+
+    saveAllRooms(rooms);
 
     // Broadcast update
     socket.to(roomId).emit("code-update", { document });
