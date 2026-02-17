@@ -1,7 +1,10 @@
 const express = require("express");
+const cors = require("cors");
 const http = require("http");
 const { Server } = require("socket.io");
 const { loadAllRooms, saveAllRooms } = require("./storage");
+const { customAlphabet } = require("nanoid");
+
 
 const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes
 const SWEEP_INTERVAL = 60 * 1000; // 1 minute
@@ -27,10 +30,38 @@ for (const roomId in persistedRooms) {
 }
 
 const app = express();
+app.use(cors());
+app.use(express.json());
+
 const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: { origin: "*" },
+});
+
+const generateRoomCode = customAlphabet("ABCDEFGHIJKLMNOPQRSTUVWXYZ", 6);
+
+app.post("/rooms", (req, res) => {
+  let roomCode;
+  const now = Date.now();
+
+  // Prevent collision
+  do {
+    roomCode = generateRoomCode();
+  } while (rooms[roomCode]);
+
+  rooms[roomCode] = {
+    id: roomCode,
+    document: "",
+    users: {},
+    createdAt: now,
+    lastUpdatedAt: now,
+    lastActivityAt: now,
+  };
+
+  saveAllRooms(rooms);
+
+  res.status(201).json({ roomCode });
 });
 
 // --------------------
