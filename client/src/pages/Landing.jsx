@@ -7,9 +7,12 @@ function Landing() {
   const [roomInput, setRoomInput] = useState("");
 
   const createRoom = async () => {
-    const res = await fetch("http://localhost:3001/rooms", {
-      method: "POST",
-    });
+    const res = await fetch(
+      "https://realtime-codeeditor-h16u.onrender.com/rooms",
+      {
+        method: "POST",
+      },
+    );
 
     const data = await res.json();
     navigate(`/room/${data.roomCode}`);

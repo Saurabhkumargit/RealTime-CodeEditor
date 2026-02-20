@@ -5,7 +5,6 @@ const { Server } = require("socket.io");
 const { loadAllRooms, saveAllRooms } = require("./storage");
 const { customAlphabet } = require("nanoid");
 
-
 const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes
 const SWEEP_INTERVAL = 60 * 1000; // 1 minute
 
@@ -14,7 +13,6 @@ const SWEEP_INTERVAL = 60 * 1000; // 1 minute
 // --------------------
 const persistedRooms = loadAllRooms();
 const rooms = {};
-
 
 for (const roomId in persistedRooms) {
   const data = persistedRooms[roomId];
@@ -30,7 +28,11 @@ for (const roomId in persistedRooms) {
 }
 
 const app = express();
-app.use(cors());
+app.use(
+  cors({
+    origin: "*", // later restrict to your frontend URL
+  }),
+);
 app.use(express.json());
 
 const server = http.createServer(app);
@@ -117,17 +119,17 @@ io.on("connection", (socket) => {
   });
 
   socket.on("leave-room", ({ roomId }) => {
-  socket.leave(roomId);
+    socket.leave(roomId);
 
-  if (rooms[roomId] && rooms[roomId].users[socket.id]) {
-    const user = rooms[roomId].users[socket.id];
-    delete rooms[roomId].users[socket.id];
+    if (rooms[roomId] && rooms[roomId].users[socket.id]) {
+      const user = rooms[roomId].users[socket.id];
+      delete rooms[roomId].users[socket.id];
 
-    socket.to(roomId).emit("user-left", {
-      userId: user.userId,
-    });
-  }
-});
+      socket.to(roomId).emit("user-left", {
+        userId: user.userId,
+      });
+    }
+  });
 
   // --------------------
   // CODE CHANGE

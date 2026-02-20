@@ -5,7 +5,7 @@ import { io } from "socket.io-client";
 import Editor from "@monaco-editor/react";
 import { useNavigate } from "react-router-dom";
 
-const socket = io("http://localhost:3001", {
+const socket = io("https://realtime-codeeditor-h16u.onrender.com", {
   reconnection: true,
   reconnectionAttempts: 5,
   reconnectionDelay: 1000,
