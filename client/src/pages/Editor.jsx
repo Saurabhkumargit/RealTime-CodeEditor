@@ -4,7 +4,11 @@ import { useParams } from "react-router-dom";
 import { io } from "socket.io-client";
 import Editor from "@monaco-editor/react";
 
-const socket = io("http://localhost:3001");
+const socket = io("http://localhost:3001", {
+  reconnection: true,
+  reconnectionAttempts: 5,
+  reconnectionDelay: 1000,
+});
 
 function RoomEditor() {
   const { roomCode } = useParams();
@@ -13,13 +17,16 @@ function RoomEditor() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const [connectionStatus, setConnectionStatus] = useState("connecting");
+
+  const [roomError, setRoomError] = useState(null);
+
   const [userId] = useState(() => `user-${Math.floor(Math.random() * 10000)}`);
   const isRemoteUpdate = useRef(false);
   const debounceTimeout = useRef(null);
+  const hasJoinedRef = useRef(false);
 
   useEffect(() => {
-    socket.emit("join-room", { roomId: roomCode, userId });
-
     socket.on("room-state", ({ document, users }) => {
       isRemoteUpdate.current = true;
       setCode(document);
@@ -42,7 +49,27 @@ function RoomEditor() {
     });
 
     socket.on("room-error", ({ message }) => {
-      alert(message);
+      setRoomError(message);
+    });
+
+    socket.on("connect", () => {
+      setConnectionStatus("connected");
+
+      if (!hasJoinedRef.current) {
+        socket.emit("join-room", { roomId: roomCode, userId });
+        hasJoinedRef.current = true;
+      } else {
+        // Reconnect case
+        socket.emit("join-room", { roomId: roomCode, userId });
+      }
+    });
+
+    socket.on("disconnect", () => {
+      setConnectionStatus("reconnecting");
+    });
+
+    socket.io.on("reconnect_failed", () => {
+      setConnectionStatus("disconnected");
     });
 
     return () => {
@@ -51,6 +78,9 @@ function RoomEditor() {
       socket.off("user-joined");
       socket.off("user-left");
       socket.off("room-error");
+      socket.off("connect");
+      socket.off("disconnect");
+      socket.io.off("reconnect_failed");
     };
   }, [roomCode, userId]);
 
@@ -93,13 +123,40 @@ function RoomEditor() {
     );
   }
 
+  if (roomError) {
+    return (
+      <div className="h-screen bg-gray-950 text-white flex flex-col items-center justify-center gap-6">
+        <div className="text-xl">{roomError}</div>
+        <button
+          onClick={() => (window.location.href = "/")}
+          className="bg-indigo-600 px-6 py-2 rounded"
+        >
+          Go Home
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="h-screen bg-gray-950 text-white flex flex-col">
       {/* Header */}
       <div className="h-14 bg-gray-900 border-b border-gray-800 flex items-center justify-between px-6">
         <div className="font-semibold">Real-Time Editor</div>
-        <div className="text-sm text-gray-400">
-          Room: <span className="text-white">{roomCode}</span>
+        <div className="flex items-center gap-4">
+          <div
+            className={`px-2 py-0.5 rounded text-xs capitalize ${
+              connectionStatus === "connected"
+                ? "bg-green-500/10 text-green-400"
+                : connectionStatus === "disconnected"
+                  ? "bg-red-500/10 text-red-400"
+                  : "bg-yellow-500/10 text-yellow-400"
+            }`}
+          >
+            {connectionStatus}
+          </div>
+          <div className="text-sm text-gray-400">
+            Room: <span className="text-white">{roomCode}</span>
+          </div>
         </div>
       </div>
 
