@@ -3,6 +3,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { io } from "socket.io-client";
 import Editor from "@monaco-editor/react";
+import { useNavigate } from "react-router-dom";
 
 const socket = io("http://localhost:3001", {
   reconnection: true,
@@ -12,12 +13,15 @@ const socket = io("http://localhost:3001", {
 
 function RoomEditor() {
   const { roomCode } = useParams();
+  const navigate = useNavigate();
 
   const [code, setCode] = useState("");
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const [connectionStatus, setConnectionStatus] = useState("connecting");
+  const [connectionStatus, setConnectionStatus] = useState(
+    socket.connected ? "connected" : "connecting",
+  );
 
   const [roomError, setRoomError] = useState(null);
 
@@ -27,6 +31,15 @@ function RoomEditor() {
   const hasJoinedRef = useRef(false);
 
   useEffect(() => {
+    if (socket.disconnected) {
+      socket.connect();
+    } else if (socket.connected && !hasJoinedRef.current) {
+      // If already connected on mount, join immediately
+
+      socket.emit("join-room", { roomId: roomCode, userId });
+      hasJoinedRef.current = true;
+    }
+
     socket.on("room-state", ({ document, users }) => {
       isRemoteUpdate.current = true;
       setCode(document);
@@ -115,6 +128,13 @@ function RoomEditor() {
     emitChange(value);
   };
 
+  const handleLeaveRoom = () => {
+    socket.emit("leave-room", { roomId: roomCode });
+
+    socket.disconnect(); // clean disconnect
+    navigate("/");
+  };
+
   if (loading) {
     return (
       <div className="h-screen bg-gray-950 text-white flex items-center justify-center">
@@ -157,6 +177,12 @@ function RoomEditor() {
           <div className="text-sm text-gray-400">
             Room: <span className="text-white">{roomCode}</span>
           </div>
+          <button
+            onClick={handleLeaveRoom}
+            className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm transition-colors"
+          >
+            Leave
+          </button>
         </div>
       </div>
 

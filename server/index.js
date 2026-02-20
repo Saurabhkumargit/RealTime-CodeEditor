@@ -116,6 +116,19 @@ io.on("connection", (socket) => {
     socket.to(roomId).emit("user-joined", { userId });
   });
 
+  socket.on("leave-room", ({ roomId }) => {
+  socket.leave(roomId);
+
+  if (rooms[roomId] && rooms[roomId].users[socket.id]) {
+    const user = rooms[roomId].users[socket.id];
+    delete rooms[roomId].users[socket.id];
+
+    socket.to(roomId).emit("user-left", {
+      userId: user.userId,
+    });
+  }
+});
+
   // --------------------
   // CODE CHANGE
   // --------------------
