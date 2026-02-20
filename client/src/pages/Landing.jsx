@@ -2,6 +2,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 
+console.log("BUILD CHECK V2");
 function Landing() {
   const navigate = useNavigate();
   const [roomInput, setRoomInput] = useState("");
