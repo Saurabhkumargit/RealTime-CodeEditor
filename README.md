@@ -1,62 +1,46 @@
-Real-Time Collaborative Code Editor (Minimal)
-Overview
+# SyncCode — Real-Time Collaborative Code Editor
 
-A minimal real-time collaborative code editor built to understand WebSockets and real-time state synchronization.
-Multiple users can join the same room and edit a shared code buffer with live updates.
+> **🔗 Live Demo: [https://synccodex.vercel.app](https://synccodex.vercel.app)**
 
-This project intentionally avoids advanced features to focus on core system behavior.
+A real-time collaborative code editor built to explore WebSockets and live state synchronization. Multiple users can join the same room and edit a shared code buffer with instant updates.
 
-Tech Stack
+---
 
-Frontend: React (Vite), plain textarea
+## Tech Stack
 
-Backend: Node.js, Express
+| Layer | Technology |
+|-------|-----------|
+| Frontend | React (Vite), Monaco Editor |
+| Backend | Node.js, Express |
+| Real-time | Socket.io |
+| State | In-memory |
+| Sync Model | Last-write-wins |
 
-Real-time: Socket.io
+---
 
-State: In-memory
+## How It Works
 
-Sync Model: Last-write-wins
+1. Users join a room via a unique room code in the URL
+2. The server maintains authoritative code state per room
+3. On every edit:
+   - Client updates local UI immediately
+   - Client sends the full updated text to the server
+   - Server overwrites room state and broadcasts to all peers in the room
 
-How It Works
+---
 
-Users join a room using a roomId passed via URL
+## Design Decisions
 
-The server maintains the authoritative code state per room
+- **Server as source of truth** — ensures consistent shared state across all clients
+- **Full-text sync instead of diffs** — simpler, avoids conflict complexity
+- **Last-write-wins** — acceptable for a minimal collaborative system
+- **In-memory storage** — keeps focus on real-time behavior, not persistence
 
-On every edit:
+---
 
-Client updates local UI immediately
+## Running Locally
 
-Client sends the full updated text to the server
-
-Server overwrites room state
-
-Server broadcasts the update to other users in the room
-
-Design Decisions
-
-Server as source of truth: Ensures consistent shared state
-
-Full-text sync instead of diffs: Simpler, avoids conflict complexity
-
-Last-write-wins: Acceptable for a minimal collaborative system
-
-In-memory storage: Keeps focus on real-time behavior, not persistence
-
-Limitations (Intentional)
-
-No authentication
-
-No database
-
-No conflict resolution (CRDT/OT)
-
-No code execution
-
-No UI polish
-
-Running Locally
+```bash
 # Backend
 cd server
 node index.js
@@ -64,8 +48,6 @@ node index.js
 # Frontend
 cd client
 npm run dev
+```
 
-
-Open:
-
-http://localhost:5173/?roomId=test
+Open: [http://localhost:5173](http://localhost:5173)
